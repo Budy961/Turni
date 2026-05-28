@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#0f0f0f">
+<title>June 2026 — Shift Calendar</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@600;800&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0f0f0f;
+    --surface: #161616;
+    --surface2: #1e1e1e;
+    --border: #272727;
+    --accent: #c8f135;
+    --accent-dim: #8aaa1f;
+    --text: #f0f0f0;
+    --muted: #666;
+    --error: #ff6b6b;
+    --weekend: rgba(200,241,53,0.04);
+  }
+
+  html, body {
+    min-height: 100vh;
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  header {
+    padding: 2rem 2rem 1rem;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: baseline;
+    gap: 1rem;
+    flex-wrap: wrap;
+  }
+
+  header h1 {
+    font-family: 'Syne', sans-serif;
+    font-size: 1.6rem;
+    font-weight: 800;
+    color: var(--text);
+  }
+
+  header h1 span { color: var(--accent); }
+
+  .subtitle {
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+
+  .stats {
+    margin-left: auto;
+    display: flex;
+    gap: 1.5rem;
+    align-items: center;
+  }
+
+  .stat { text-align: right; }
+  .stat-val {
+    font-size: 1.1rem;
+    font-weight: 500;
+    color: var(--accent);
+  }
+  .stat-label {
+    font-size: 10px;
+    color: var(--muted);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .table-wrap {
+    padding: 1.5rem 2rem;
+    overflow-x: auto;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 500px;
+  }
+
+  thead th {
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--muted);
+    padding: 0 1rem 0.75rem;
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+    font-weight: 400;
+  }
+
+  thead th:first-child { width: 110px; }
+  thead th:nth-child(2) { width: 60px; }
+  thead th:nth-child(3) { width: 80px; }
+
+  tbody tr {
+    border-bottom: 1px solid var(--border);
+    transition: background 0.15s;
+  }
+
+  tbody tr:hover { background: var(--surface); }
+  tbody tr.weekend { background: var(--weekend); }
+  tbody tr.weekend:hover { background: rgba(200,241,53,0.07); }
+  tbody tr.today { background: rgba(200,241,53,0.06); }
+
+  td {
+    padding: 0.35rem 1rem;
+    font-size: 13px;
+    vertical-align: middle;
+  }
+
+  .day-cell {
+    color: var(--text);
+    font-size: 13px;
+    white-space: nowrap;
+  }
+
+  .day-name {
+    font-size: 10px;
+    color: var(--muted);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    margin-left: 6px;
+  }
+
+  .day-name.weekend { color: var(--accent-dim); }
+
+  td input {
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: 6px;
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    font-size: 13px;
+    padding: 0.3rem 0.5rem;
+    width: 80px;
+    text-transform: uppercase;
+    outline: none;
+    transition: border-color 0.15s, background 0.15s;
+    letter-spacing: 0.05em;
+  }
+
+  td input:hover { border-color: var(--border); }
+  td input:focus { border-color: var(--accent); background: rgba(200,241,53,0.04); }
+  td input.valid { color: var(--accent); }
+  td input.invalid { color: var(--error); border-color: rgba(255,107,107,0.4); }
+
+  .time-cell {
+    font-size: 13px;
+    color: var(--text);
+    letter-spacing: 0.04em;
+    min-width: 60px;
+  }
+
+  .time-cell.empty { color: var(--border); }
+  .time-cell.error { color: var(--error); font-size: 11px; }
+
+  .dur-cell {
+    font-size: 11px;
+    color: var(--muted);
+  }
+
+  .today-badge {
+    font-size: 9px;
+    background: var(--accent);
+    color: #000;
+    border-radius: 4px;
+    padding: 1px 5px;
+    margin-left: 6px;
+    font-weight: 500;
+    letter-spacing: 0.05em;
+    vertical-align: middle;
+  }
+
+  footer {
+    padding: 1rem 2rem;
+    border-top: 1px solid var(--border);
+    font-size: 11px;
+    color: var(--muted);
+    display: flex;
+    gap: 2rem;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+
+  .legend { display: flex; align-items: center; gap: 0.4rem; }
+  .dot { width: 8px; height: 8px; border-radius: 50%; }
+  .dot.green { background: var(--accent); }
+  .dot.red { background: var(--error); }
+  .dot.we { background: rgba(200,241,53,0.3); border: 1px solid var(--accent-dim); }
+
+  @media (max-width: 600px) {
+    header, .table-wrap, footer { padding-left: 1rem; padding-right: 1rem; }
+    .stats { width: 100%; margin-left: 0; justify-content: flex-start; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>June <span>2026</span></h1>
+    <p class="subtitle">Shift Calendar</p>
+  </div>
+  <div class="stats">
+    <div class="stat">
+      <div class="stat-val" id="filled-count">0</div>
+      <div class="stat-label">days filled</div>
+    </div>
+    <div class="stat">
+      <div class="stat-val" id="total-hours">0h</div>
+      <div class="stat-label">total hours</div>
+    </div>
+  </div>
+</header>
+
+<div class="table-wrap">
+  <table>
+    <thead>
+      <tr>
+        <th>Day</th>
+        <th>Code</th>
+        <th>Start</th>
+        <th>End</th>
+        <th>Duration</th>
+      </tr>
+    </thead>
+    <tbody id="tbody"></tbody>
+  </table>
+</div>
+
+<footer>
+  <span class="legend"><span class="dot green"></span> valid code</span>
+  <span class="legend"><span class="dot red"></span> unknown code</span>
+  <span class="legend"><span class="dot we"></span> weekend</span>
+  <span style="margin-left:auto">data saved in your browser automatically</span>
+</footer>
+
+<script>
+const shifts = {"1":null,"2":null,"098":["02:30","10:30"],"100":["03:30","11:30"],"101":["04:00","12:00"],"102":["04:30","12:30"],"103":["05:00","13:00"],"104":["05:30","13:30"],"105":["06:00","14:00"],"106":["06:30","14:30"],"107":["07:00","15:00"],"108":["07:30","15:30"],"109":["08:00","16:00"],"110":["08:30","16:30"],"111":["09:00","17:00"],"112":["09:30","17:30"],"113":["10:00","18:00"],"114":["10:30","18:30"],"115":["11:00","19:00"],"116":["11:30","19:30"],"117":["12:00","20:00"],"118":["13:00","21:00"],"119":["13:30","21:30"],"120":["14:00","22:00"],"121":["14:30","22:30"],"122":["15:00","23:00"],"123":["15:30","23:30"],"124":["16:00","00:00"],"125":["16:30","00:30"],"126":["17:00","01:00"],"127":["17:30","01:30"],"128":["18:00","02:00"],"129":["18:30","02:30"],"130":["19:00","03:00"],"131":["19:30","03:30"],"132":["20:00","03:30"],"133":["20:30","04:00"],"134":["21:00","04:30"],"135":["21:30","05:00"],"136":["22:00","05:30"],"137":["22:30","06:00"],"138":["23:00","06:30"],"139":["23:30","07:00"],"140":["00:00","07:30"],"142":["12:30","20:30"],"143":["02:00","09:30"],"B42":["01:00","09:00"],"B44":["02:30","11:00"],"B36":["03:00","11:30"],"B46":["03:30","12:00"],"B37":["04:00","12:30"],"B00":["04:30","13:00"],"B01":["05:00","13:30"],"B02":["05:30","14:00"],"B03":["06:00","14:30"],"B04":["06:30","15:00"],"B05":["07:00","15:30"],"B06":["07:30","16:00"],"B07":["08:00","16:30"],"B08":["08:30","17:00"],"B09":["09:00","17:30"],"B10":["09:30","18:00"],"B11":["10:00","18:30"],"B12":["10:30","19:00"],"B13":["11:00","19:30"],"B14":["11:30","20:00"],"B15":["12:00","20:30"],"B16":["12:30","21:00"],"B17":["13:00","21:30"],"B18":["13:30","22:00"],"B19":["14:00","22:30"],"B20":["14:30","23:00"],"B21":["15:00","23:30"],"B22":["15:30","00:00"],"B23":["16:00","00:30"],"B24":["16:30","01:00"],"B25":["17:00","01:30"],"B26":["17:30","02:00"],"B27":["18:00","02:30"],"B28":["18:30","03:00"],"B29":["19:00","03:30"],"B30":["19:30","04:00"],"B31":["20:00","04:00"],"B32":["20:30","04:30"],"B33":["21:00","05:00"],"B34":["22:00","06:00"],"B35":["22:30","06:30"],"B41":["23:00","07:00"],"C45":["03:30","07:30"],"C01":["04:00","08:00"],"C02":["04:30","08:30"],"C03":["05:00","09:00"],"C04":["05:30","09:30"],"C05":["06:00","10:00"],"C06":["06:30","10:30"],"C07":["07:00","11:00"],"C08":["07:30","11:30"],"C09":["08:00","12:00"],"C10":["08:30","12:30"],"C11":["09:00","13:00"],"C12":["09:30","13:30"],"C13":["10:00","14:00"],"C14":["10:30","14:30"],"C15":["11:00","15:00"],"C16":["11:30","15:30"],"C17":["12:00","16:00"],"C18":["12:30","16:30"],"C19":["13:00","17:00"],"C20":["13:30","17:30"],"C21":["14:00","18:00"],"C22":["14:30","18:30"],"C23":["15:00","19:00"],"C24":["15:30","19:30"],"C25":["16:00","20:00"],"C26":["16:30","20:30"],"C27":["17:00","21:00"],"C28":["17:30","21:30"],"C29":["18:00","22:00"],"C37":["18:30","22:30"],"C30":["19:00","23:00"],"C31":["19:30","23:30"],"C38":["20:00","00:00"],"C32":["20:30","00:30"],"C36":["21:00","01:00"],"C33":["21:30","01:30"],"C34":["22:00","02:00"],"C47":["22:30","02:30"],"C46":["23:00","03:00"],"C35":["00:30","04:30"],"D49":["02:30","08:30"],"D51":["03:30","09:30"],"C93":["05:00","11:30"],"C50":["05:30","12:00"],"C51":["06:00","12:30"],"C52":["06:30","13:00"],"C53":["07:00","13:30"],"C54":["07:30","14:00"],"C72":["08:00","14:30"],"C55":["08:30","15:00"],"C70":["09:00","15:30"],"C73":["09:30","16:00"],"C56":["10:00","16:30"],"C57":["10:30","17:00"],"C58":["11:00","17:30"],"C59":["11:30","18:00"],"C60":["12:00","18:30"],"C78":["12:30","19:00"],"C77":["13:00","19:30"],"C94":["13:30","20:00"],"C69":["14:00","20:30"],"C61":["14:30","21:00"],"C62":["15:00","21:30"],"C63":["15:30","22:00"],"C64":["16:00","22:30"],"C65":["16:30","23:00"],"C92":["17:00","23:30"],"C66":["17:30","00:00"],"D21":["18:00","00:30"],"C67":["18:30","01:00"],"C82":["19:00","01:30"],"D15":["19:30","02:00"],"C84":["20:00","02:30"],"C68":["21:00","03:00"],"D16":["22:00","04:00"],"C83":["23:00","05:00"],"C89":["00:30","06:30"],"D31":["08:30","15:00"],"D30":["08:30","15:30"],"D48":["01:00","07:00"],"D14":["04:00","10:00"],"C75":["04:30","10:30"],"C76":["05:00","11:00"],"D20":["05:30","11:30"],"C80":["06:00","12:00"],"C81":["06:30","12:30"],"D02":["07:00","13:00"],"D03":["07:30","13:30"],"D04":["08:00","14:00"],"C97":["08:30","14:30"],"C71":["09:00","15:00"],"D05":["09:30","15:30"],"D06":["10:00","16:00"],"D07":["10:30","16:30"],"D08":["11:00","17:00"],"D09":["11:30","17:30"],"C87":["12:00","18:00"],"C88":["12:30","18:30"],"D10":["13:00","19:00"],"C95":["13:30","19:30"],"C90":["14:00","20:00"],"C91":["14:30","20:30"],"D11":["15:00","21:00"],"D12":["15:30","21:30"],"C96":["16:00","22:00"],"D13":["16:30","22:30"],"C86":["17:00","23:00"],"D19":["17:30","23:30"],"D17":["18:30","00:30"],"D22":["19:00","01:00"],"D23":["19:30","01:30"],"D18":["20:00","02:00"],"D26":["20:30","02:30"]};
+
+const DAYS = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+const STORAGE_KEY = 'shift_june_2026';
+
+function toMinutes(t) {
+  const [h, m] = t.split(':').map(Number);
+  return h * 60 + m;
+}
+
+function calcDuration(start, end) {
+  let s = toMinutes(start), e = toMinutes(end);
+  if (e <= s) e += 1440;
+  const diff = e - s;
+  const h = Math.floor(diff / 60), m = diff % 60;
+  return { str: m === 0 ? h + 'h' : h + 'h ' + m + 'm', minutes: diff };
+}
+
+function loadData() {
+  try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || {}; } catch { return {}; }
+}
+
+function saveData(data) {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); } catch {}
+}
+
+function updateStats() {
+  const data = loadData();
+  let filled = 0, totalMins = 0;
+  for (let d = 1; d <= 30; d++) {
+    const code = (data[d] || '').toUpperCase();
+    if (!code) continue;
+    const entry = shifts[code];
+    if (entry) {
+      filled++;
+      const dur = calcDuration(entry[0], entry[1]);
+      totalMins += dur.minutes;
+    }
+  }
+  document.getElementById('filled-count').textContent = filled;
+  const h = Math.floor(totalMins / 60), m = totalMins % 60;
+  document.getElementById('total-hours').textContent = m === 0 ? h + 'h' : h + 'h ' + m + 'm';
+}
+
+function buildTable() {
+  const tbody = document.getElementById('tbody');
+  const data = loadData();
+  const today = new Date();
+  tbody.innerHTML = '';
+
+  for (let d = 1; d <= 30; d++) {
+    const date = new Date(2026, 5, d);
+    const dow = date.getDay();
+    const isWeekend = dow === 0 || dow === 6;
+    const isToday = today.getFullYear() === 2026 && today.getMonth() === 5 && today.getDate() === d;
+    const savedCode = data[d] || '';
+
+    const tr = document.createElement('tr');
+    if (isWeekend) tr.classList.add('weekend');
+    if (isToday) tr.classList.add('today');
+
+    // Day cell
+    const tdDay = document.createElement('td');
+    tdDay.className = 'day-cell';
+    tdDay.innerHTML = `${String(d).padStart(2,'0')} <span class="day-name${isWeekend ? ' weekend' : ''}">${DAYS[dow]}</span>${isToday ? '<span class="today-badge">today</span>' : ''}`;
+    tr.appendChild(tdDay);
+
+    // Code input cell
+    const tdCode = document.createElement('td');
+    const inp = document.createElement('input');
+    inp.type = 'text';
+    inp.maxLength = 6;
+    inp.value = savedCode;
+    inp.setAttribute('data-day', d);
+    inp.setAttribute('autocomplete', 'off');
+    inp.setAttribute('spellcheck', 'false');
+    if (savedCode) applyCodeStyle(inp, savedCode);
+    tdCode.appendChild(inp);
+    tr.appendChild(tdCode);
+
+    // Start / End / Duration cells
+    const tdStart = document.createElement('td');
+    tdStart.className = 'time-cell';
+    const tdEnd = document.createElement('td');
+    tdEnd.className = 'time-cell';
+    const tdDur = document.createElement('td');
+    tdDur.className = 'dur-cell';
+
+    if (savedCode) fillTimeCells(savedCode.toUpperCase(), tdStart, tdEnd, tdDur);
+    else {
+      tdStart.textContent = '—';
+      tdStart.classList.add('empty');
+      tdEnd.textContent = '—';
+      tdEnd.classList.add('empty');
+    }
+
+    tr.appendChild(tdStart);
+    tr.appendChild(tdEnd);
+    tr.appendChild(tdDur);
+    tbody.appendChild(tr);
+
+    inp.addEventListener('input', () => {
+      const val = inp.value.trim().toUpperCase();
+      applyCodeStyle(inp, val);
+      fillTimeCells(val, tdStart, tdEnd, tdDur);
+      const d2 = parseInt(inp.getAttribute('data-day'));
+      const stored = loadData();
+      stored[d2] = inp.value.trim();
+      saveData(stored);
+      updateStats();
+    });
+
+    inp.addEventListener('keydown', e => {
+      if (e.key === 'Enter' || e.key === 'ArrowDown') {
+        const next = tbody.querySelector(`input[data-day="${d+1}"]`);
+        if (next) next.focus();
+      }
+      if (e.key === 'ArrowUp') {
+        const prev = tbody.querySelector(`input[data-day="${d-1}"]`);
+        if (prev) prev.focus();
+      }
+    });
+  }
+
+  updateStats();
+}
+
+function applyCodeStyle(inp, val) {
+  inp.classList.remove('valid', 'invalid');
+  if (!val) return;
+  const entry = shifts[val];
+  if (entry !== undefined) inp.classList.add('valid');
+  else inp.classList.add('invalid');
+}
+
+function fillTimeCells(val, tdStart, tdEnd, tdDur) {
+  tdStart.className = 'time-cell';
+  tdEnd.className = 'time-cell';
+  tdDur.className = 'dur-cell';
+
+  if (!val) {
+    tdStart.textContent = '—'; tdStart.classList.add('empty');
+    tdEnd.textContent = '—'; tdEnd.classList.add('empty');
+    tdDur.textContent = '';
+    return;
+  }
+  const entry = shifts[val];
+  if (entry === undefined) {
+    tdStart.textContent = '—'; tdStart.classList.add('empty');
+    tdEnd.textContent = '—'; tdEnd.classList.add('empty');
+    tdDur.textContent = '';
+  } else if (entry === null) {
+    tdStart.textContent = '—'; tdStart.classList.add('empty');
+    tdEnd.textContent = '—'; tdEnd.classList.add('empty');
+    tdDur.textContent = '';
+  } else {
+    tdStart.textContent = entry[0];
+    tdEnd.textContent = entry[1];
+    tdDur.textContent = calcDuration(entry[0], entry[1]).str;
+  }
+}
+
+buildTable();
+</script>
+</body>
+</html>
